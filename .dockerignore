@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.git/
+.gitignore
+data/
+ml/model.joblib
+ml/synthetic_credit_dataset.csv
+*.pdf
+README.md

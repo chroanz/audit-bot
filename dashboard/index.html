@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<title>Audit-Bot · Painel de Governança</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --accent: #4f8cff;
+    --danger: #ff5c5c;
+    --danger-bg: #3a1d22;
+    --ok: #34c38f;
+    --ok-bg: #12291f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 20px; margin: 0; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  main {
+    padding: 24px 28px 60px;
+    display: grid;
+    gap: 24px;
+    grid-template-columns: 1fr;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .card .value { font-size: 28px; font-weight: 600; margin-top: 6px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  section h2 { font-size: 15px; margin: 0 0 14px; display:flex; align-items:center; gap:8px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--panel-2); color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; }
+  tr:last-child td { border-bottom: none; }
+  .pill { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .pill.open { background: var(--danger-bg); color: var(--danger); }
+  .pill.reviewed { background: var(--ok-bg); color: var(--ok); }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-track { flex: 1; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); }
+  .bar-fill.low { background: var(--danger); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  input, button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+  button:hover { filter: brightness(1.1); }
+  .msg { font-size: 12px; margin-top: 8px; color: var(--muted); }
+  .msg.error { color: var(--danger); }
+  .msg.success { color: var(--ok); }
+  .review-form { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .review-form input { flex: 1; min-width: 140px; }
+  .refresh-note { color: var(--muted); font-size: 12px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🛡️ Audit-Bot</h1>
+    <p>Painel de Governança de IA · LGPD Art. 6º IX, 20, 50 · CDC Art. 6º III, 39</p>
+  </header>
+
+  <main>
+    <div class="cards" id="summary-cards"></div>
+
+    <section>
+      <h2>🚨 Alertas de Disparidade <span class="badge" id="alerts-count">0</span></h2>
+      <p class="refresh-note">Regra dos 4/5 (Disparate Impact &lt; 0,80). Gerados automaticamente pelo RF03 — não bloqueiam a decisão, apenas notificam a governança.</p>
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Atributo</th><th>Grupo afetado</th><th>Referência</th><th>Razão DI</th><th>Amostra</th><th>Mensagem / Revisão</th></tr>
+        </thead>
+        <tbody id="alerts-body"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>⚖️ Equidade por Grupo Protegido</h2>
+      <div id="fairness-groups"></div>
+    </section>
+
+    <section>
+      <h2>📄 Relatório de Revisão (Art. 20 LGPD)</h2>
+      <div class="toolbar">
+        <input id="report-tx-id" placeholder="ID da transação (hash/UUID)" style="min-width:320px" />
+        <button class="primary" onclick="downloadReport()">Gerar PDF</button>
+      </div>
+      <div class="msg" id="report-msg"></div>
+    </section>
+
+    <section>
+      <h2>🧾 Transações Auditadas <span class="badge" id="tx-count">0</span></h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Recebido em</th><th>Decisão</th><th>Score</th><th>Explicação (resumo)</th></tr>
+        </thead>
+        <tbody id="tx-body"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>Audit-Bot MVP — protótipo acadêmico de governança e mitigação de viés em IA.</footer>
+
+<script>
+const API = "";
+
+async function fetchJSON(url, opts) {
+  const res = await fetch(API + url, opts);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(body || res.statusText);
+  }
+  return res.json();
+}
+
+function pct(n) { return (n * 100).toFixed(1) + "%"; }
+
+async function loadSummary() {
+  const summary = await fetchJSON("/governance/summary");
+  const cards = document.getElementById("summary-cards");
+  cards.innerHTML = `
+    <div class="card"><div class="label">Transações Auditadas</div><div class="value">${summary.total_transactions}</div></div>
+    <div class="card"><div class="label">Alertas Gerados</div><div class="value">${summary.total_alerts}</div></div>
+    <div class="card"><div class="label">Atributos Monitorados</div><div class="value">${Object.keys(summary.group_stats).length}</div></div>
+  `;
+  document.getElementById("tx-count").textContent = summary.total_transactions;
+
+  const groupsDiv = document.getElementById("fairness-groups");
+  groupsDiv.innerHTML = "";
+  const entries = Object.entries(summary.group_stats);
+  if (entries.length === 0) {
+    groupsDiv.innerHTML = '<p class="refresh-note">Nenhum atributo protegido recebido ainda.</p>';
+  }
+  for (const [attr, groups] of entries) {
+    const maxRate = Math.max(...groups.map(g => g.favorable_rate));
+    const rows = groups.map(g => {
+      const low = maxRate > 0 && (g.favorable_rate / maxRate) < 0.8;
+      return `<tr>
+        <td><b>${g.group_value}</b></td>
+        <td>${g.n}</td>
+        <td>
+          <div class="bar-wrap">
+            <div class="bar-track"><div class="bar-fill ${low ? 'low' : ''}" style="width:${(g.favorable_rate*100).toFixed(0)}%"></div></div>
+            <span class="mono">${pct(g.favorable_rate)}</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+    groupsDiv.innerHTML += `
+      <h3 style="font-size:13px;color:var(--muted);margin:16px 0 6px;text-transform:uppercase;">${attr}</h3>
+      <table>
+        <thead><tr><th>Grupo</th><th>N</th><th>Taxa favorável</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+}
+
+async function loadAlerts() {
+  const alerts = await fetchJSON("/governance/alerts");
+  document.getElementById("alerts-count").textContent = alerts.length;
+  const body = document.getElementById("alerts-body");
+  body.innerHTML = alerts.map(a => `
+    <tr>
+      <td><span class="pill ${a.status === 'aberto' ? 'open' : 'reviewed'}">${a.status}</span></td>
+      <td>${a.protected_attribute}</td>
+      <td>${a.group_value}</td>
+      <td>${a.reference_value}</td>
+      <td class="mono">${a.disparate_impact_ratio}</td>
+      <td>${a.group_sample_size}</td>
+      <td style="max-width:320px">
+        <div style="margin-bottom:6px">${a.message}</div>
+        ${a.status === 'aberto' ? `
+          <div class="review-form">
+            <input id="reviewer-${a.id}" placeholder="Nome do DPO/revisor" />
+            <input id="note-${a.id}" placeholder="Nota da revisão" />
+            <button onclick="reviewAlert(${a.id})">Registrar revisão</button>
+          </div>` : `<div class="mono">${a.reviews.map(r => `${r.reviewer}: ${r.note}`).join('; ')}</div>`}
+      </td>
+    </tr>
+  `).join("") || '<tr><td colspan="7" class="refresh-note">Nenhum alerta até o momento.</td></tr>';
+}
+
+async function reviewAlert(id) {
+  const reviewer = document.getElementById(`reviewer-${id}`).value.trim();
+  const note = document.getElementById(`note-${id}`).value.trim();
+  if (!reviewer || !note) { alert("Preencha revisor e nota."); return; }
+  await fetchJSON(`/governance/alerts/${id}/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reviewer, note }),
+  });
+  await loadAlerts();
+}
+
+async function loadTransactions() {
+  const txs = await fetchJSON("/governance/transactions?limit=100");
+  const body = document.getElementById("tx-body");
+  body.innerHTML = txs.map(t => `
+    <tr>
+      <td class="mono">${t.transaction_id}</td>
+      <td>${new Date(t.received_at).toLocaleString()}</td>
+      <td>${t.prediction === 1 ? "✅ Aprovado" : "❌ Negado"}</td>
+      <td>${t.score !== null && t.score !== undefined ? pct(t.score) : "-"}</td>
+      <td>${t.explanation_text}</td>
+    </tr>
+  `).join("") || '<tr><td colspan="5" class="refresh-note">Nenhuma transação auditada ainda.</td></tr>';
+}
+
+async function downloadReport() {
+  const id = document.getElementById("report-tx-id").value.trim();
+  const msg = document.getElementById("report-msg");
+  msg.className = "msg";
+  msg.textContent = "";
+  if (!id) { msg.textContent = "Informe um ID de transação."; msg.className = "msg error"; return; }
+  try {
+    const res = await fetch(`/transactions/${id}/report`);
+    if (!res.ok) throw new Error(await res.text());
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `relatorio_lgpd_${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    msg.textContent = "Relatório gerado com sucesso.";
+    msg.className = "msg success";
+  } catch (e) {
+    msg.textContent = "Erro ao gerar relatório: " + e.message;
+    msg.className = "msg error";
+  }
+}
+
+async function refreshAll() {
+  try {
+    await Promise.all([loadSummary(), loadAlerts(), loadTransactions()]);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+refreshAll();
+setInterval(refreshAll, 8000);
+</script>
+</body>
+</html>

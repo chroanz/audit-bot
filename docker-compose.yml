@@ -1,0 +1,19 @@
+services:
+  audit-bot:
+    build: .
+    image: audit-bot:mvp
+    container_name: audit-bot
+    ports:
+      - "8000:8000"
+    volumes:
+      - audit_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  audit_data:

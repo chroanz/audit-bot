@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+data/audit_log.db
+ml/model.joblib
+ml/synthetic_credit_dataset.csv
+*.pdf
