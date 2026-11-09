@@ -5,3 +5,13 @@ data/audit_log.db
 ml/model.joblib
 ml/synthetic_credit_dataset.csv
 *.pdf
+
+# Artefatos experimentais gerados
+experiments/data/
+experiments/results/
+experiments/models/
+
+# Bancos locais
+*.db
+*.db-shm
+*.db-wal

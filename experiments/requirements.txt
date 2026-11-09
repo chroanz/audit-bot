@@ -1,0 +1,11 @@
+numpy==2.5.3
+pandas==3.0.5
+scikit-learn==1.9.1
+fairlearn==0.15.0
+shap==0.54.1
+fastapi==0.141.1
+uvicorn==0.52.4
+reportlab==5.0.1
+pypdf==7.0.0
+joblib==1.6.0
+ucimlrepo
